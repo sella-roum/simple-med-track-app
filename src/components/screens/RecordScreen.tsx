@@ -7,7 +7,7 @@ import { Label } from '@/components/ui/label';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Textarea } from '@/components/ui/textarea';
 import { useToast } from '@/hooks/use-toast';
-import { Clock, CheckCircle } from 'lucide-react';
+import { Clock, CheckCircle, Info } from 'lucide-react';
 
 export const RecordScreen = () => {
   const [selectedTime, setSelectedTime] = useState('');
@@ -27,11 +27,11 @@ export const RecordScreen = () => {
     setSelectedTime(currentTime);
   }, []);
 
-  // サンプル薬剤データ
+  // サンプル薬剤データ（メモを追加）
   const medications = [
-    { id: '1', name: 'ロキソニン錠60mg', standardDose: '1', unit: '錠' },
-    { id: '2', name: 'ガスター錠20mg', standardDose: '1', unit: '錠' },
-    { id: '3', name: 'ムコダイン錠250mg', standardDose: '3', unit: '錠' },
+    { id: '1', name: 'ロキソニン錠60mg', standardDose: '1', unit: '錠', memo: '痛み止め・食後に服用' },
+    { id: '2', name: 'ガスター錠20mg', standardDose: '1', unit: '錠', memo: '胃薬・空腹時でも可' },
+    { id: '3', name: 'ムコダイン錠250mg', standardDose: '3', unit: '錠', memo: '去痰薬・水分を多めに摂取' },
   ];
 
   const handleMedicationToggle = (medicationId: string, checked: boolean) => {
@@ -104,23 +104,23 @@ export const RecordScreen = () => {
     <div className="space-y-6 animate-fade-in">
       <div className="text-center">
         <h2 className="text-2xl font-bold text-gray-800 mb-2">服薬記録</h2>
-        <p className="text-lg text-blue-600 font-medium flex items-center justify-center gap-2">
+        <p className="text-lg text-indigo-600 font-medium flex items-center justify-center gap-2">
           <Clock className="w-5 h-5" />
           {formattedDate}
         </p>
       </div>
 
-      <Card className="shadow-lg border-0 bg-gradient-to-br from-white to-blue-50">
-        <CardHeader className="bg-gradient-to-r from-blue-500 to-indigo-600 text-white rounded-t-lg">
+      <Card className="shadow-lg border-0 bg-gradient-to-br from-white to-indigo-50">
+        <CardHeader className="bg-gradient-to-r from-indigo-500 to-purple-600 text-white rounded-t-lg">
           <CardTitle className="text-lg font-semibold flex items-center gap-2">
             <CheckCircle className="w-5 h-5" />
             服薬情報の入力
           </CardTitle>
         </CardHeader>
         <CardContent className="space-y-6 p-6">
-          <div className="bg-white p-4 rounded-lg shadow-sm border border-blue-100">
+          <div className="bg-white p-4 rounded-lg shadow-sm border border-indigo-100">
             <Label htmlFor="time" className="text-sm font-medium text-gray-700 flex items-center gap-2 mb-2">
-              <Clock className="w-4 h-4 text-blue-500" />
+              <Clock className="w-4 h-4 text-indigo-500" />
               服用時刻 *
             </Label>
             <Input
@@ -128,17 +128,17 @@ export const RecordScreen = () => {
               type="time"
               value={selectedTime}
               onChange={(e) => setSelectedTime(e.target.value)}
-              className="border-blue-200 focus:border-blue-500"
+              className="border-indigo-200 focus:border-indigo-500"
             />
           </div>
 
-          <div className="bg-white p-4 rounded-lg shadow-sm border border-blue-100">
+          <div className="bg-white p-4 rounded-lg shadow-sm border border-indigo-100">
             <Label className="text-sm font-medium text-gray-700 mb-4 block">
               服用薬選択 *
             </Label>
             <div className="space-y-4">
               {medications.map((medication) => (
-                <Card key={medication.id} className="p-4 hover:shadow-md transition-all duration-200 border-l-4 border-l-transparent hover:border-l-blue-500">
+                <Card key={medication.id} className="p-4 hover:shadow-md transition-all duration-200 border-l-4 border-l-transparent hover:border-l-indigo-500">
                   <div className="flex items-start space-x-3">
                     <Checkbox
                       id={medication.id}
@@ -146,7 +146,7 @@ export const RecordScreen = () => {
                       onCheckedChange={(checked) => 
                         handleMedicationToggle(medication.id, checked as boolean)
                       }
-                      className="mt-1 data-[state=checked]:bg-blue-500 data-[state=checked]:border-blue-500"
+                      className="mt-1 data-[state=checked]:bg-indigo-500 data-[state=checked]:border-indigo-500"
                     />
                     <div className="flex-1 space-y-3">
                       <div>
@@ -156,10 +156,16 @@ export const RecordScreen = () => {
                         <p className="text-sm text-gray-500 mt-1">
                           標準服用量: {medication.standardDose} {medication.unit}
                         </p>
+                        {medication.memo && (
+                          <div className="flex items-center gap-2 mt-2 p-2 bg-indigo-50 rounded-lg border border-indigo-100">
+                            <Info className="w-4 h-4 text-indigo-500 flex-shrink-0" />
+                            <p className="text-sm text-indigo-700">{medication.memo}</p>
+                          </div>
+                        )}
                       </div>
                       
                       {selectedMedications.includes(medication.id) && (
-                        <div className="space-y-4 pl-4 border-l-2 border-blue-200 bg-blue-50 p-4 rounded-lg animate-fade-in">
+                        <div className="space-y-4 pl-4 border-l-2 border-indigo-200 bg-indigo-50 p-4 rounded-lg animate-fade-in">
                           <div>
                             <Label className="text-sm font-medium text-gray-700 mb-2 block">
                               服用量
@@ -174,7 +180,7 @@ export const RecordScreen = () => {
                                   ...prev,
                                   [medication.id]: e.target.value
                                 }))}
-                                className="w-24 border-blue-200 focus:border-blue-500"
+                                className="w-24 border-indigo-200 focus:border-indigo-500"
                               />
                               <span className="text-sm text-gray-600 font-medium">
                                 {medication.unit}
@@ -193,7 +199,7 @@ export const RecordScreen = () => {
                                 [medication.id]: e.target.value
                               }))}
                               placeholder="服用に関するメモがあれば記入してください"
-                              className="resize-none border-blue-200 focus:border-blue-500"
+                              className="resize-none border-indigo-200 focus:border-indigo-500"
                               rows={2}
                             />
                           </div>
@@ -208,7 +214,7 @@ export const RecordScreen = () => {
 
           <Button 
             onClick={handleRecord}
-            className="w-full bg-gradient-to-r from-blue-500 to-indigo-600 hover:from-blue-600 hover:to-indigo-700 text-white font-medium py-4 text-lg shadow-lg hover:shadow-xl transition-all duration-200"
+            className="w-full bg-gradient-to-r from-indigo-500 to-purple-600 hover:from-indigo-600 hover:to-purple-700 text-white font-medium py-4 text-lg shadow-lg hover:shadow-xl transition-all duration-200"
             size="lg"
           >
             <CheckCircle className="w-5 h-5 mr-2" />

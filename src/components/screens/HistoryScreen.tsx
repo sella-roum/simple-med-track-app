@@ -5,8 +5,11 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Badge } from '@/components/ui/badge';
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog';
+import { Textarea } from '@/components/ui/textarea';
 import { useToast } from '@/hooks/use-toast';
-import { Search, Calendar, Edit, Trash2, Clock } from 'lucide-react';
+import { Search, Calendar, Edit, Trash2, Clock, Save, X } from 'lucide-react';
 
 interface HistoryRecord {
   id: string;
@@ -21,6 +24,14 @@ export const HistoryScreen = () => {
   const [startDate, setStartDate] = useState('');
   const [endDate, setEndDate] = useState('');
   const [historyData, setHistoryData] = useState<HistoryRecord[]>([]);
+  const [editingRecord, setEditingRecord] = useState<HistoryRecord | null>(null);
+  const [deleteRecord, setDeleteRecord] = useState<HistoryRecord | null>(null);
+  const [editFormData, setEditFormData] = useState({
+    date: '',
+    time: '',
+    dosage: '',
+    memo: ''
+  });
   const { toast } = useToast();
 
   // 本日の日付をデフォルト値として設定
@@ -78,18 +89,60 @@ export const HistoryScreen = () => {
     });
   };
 
-  const handleEdit = (recordId: string) => {
-    toast({
-      title: "編集機能",
-      description: "編集ダイアログを実装予定です。",
+  const handleEdit = (record: HistoryRecord) => {
+    setEditingRecord(record);
+    setEditFormData({
+      date: record.date,
+      time: record.time,
+      dosage: record.dosage,
+      memo: record.memo
     });
   };
 
-  const handleDelete = (recordId: string) => {
+  const handleSaveEdit = () => {
+    if (!editingRecord) return;
+
+    if (!editFormData.date || !editFormData.time || !editFormData.dosage) {
+      toast({
+        title: "エラー",
+        description: "日付、時刻、服用量は必須項目です。",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    // 実際の実装ではAPIを呼び出して更新
+    setHistoryData(prev => prev.map(record => 
+      record.id === editingRecord.id 
+        ? { ...record, ...editFormData }
+        : record
+    ));
+
     toast({
-      title: "削除機能",
-      description: "削除確認ダイアログを実装予定です。",
+      title: "更新完了",
+      description: "服薬記録を更新しました。",
     });
+
+    setEditingRecord(null);
+  };
+
+  const handleCancelEdit = () => {
+    setEditingRecord(null);
+    setEditFormData({ date: '', time: '', dosage: '', memo: '' });
+  };
+
+  const handleDeleteConfirm = () => {
+    if (!deleteRecord) return;
+
+    // 実際の実装ではAPIを呼び出して削除
+    setHistoryData(prev => prev.filter(record => record.id !== deleteRecord.id));
+
+    toast({
+      title: "削除完了",
+      description: "服薬記録を削除しました。",
+    });
+
+    setDeleteRecord(null);
   };
 
   // 日付ごとにグループ化
@@ -109,8 +162,8 @@ export const HistoryScreen = () => {
         <p className="text-gray-600">過去の服薬記録を確認できます</p>
       </div>
 
-      <Card className="shadow-lg border-0 bg-gradient-to-br from-white to-green-50">
-        <CardHeader className="bg-gradient-to-r from-green-500 to-emerald-600 text-white rounded-t-lg">
+      <Card className="shadow-lg border-0 bg-gradient-to-br from-white to-indigo-50">
+        <CardHeader className="bg-gradient-to-r from-indigo-500 to-purple-600 text-white rounded-t-lg">
           <CardTitle className="text-lg font-semibold flex items-center gap-2">
             <Search className="w-5 h-5" />
             検索条件
@@ -118,9 +171,9 @@ export const HistoryScreen = () => {
         </CardHeader>
         <CardContent className="space-y-4 p-6">
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div className="bg-white p-4 rounded-lg shadow-sm border border-green-100">
+            <div className="bg-white p-4 rounded-lg shadow-sm border border-indigo-100">
               <Label htmlFor="startDate" className="text-sm font-medium text-gray-700 flex items-center gap-2 mb-2">
-                <Calendar className="w-4 h-4 text-green-500" />
+                <Calendar className="w-4 h-4 text-indigo-500" />
                 開始日
               </Label>
               <Input
@@ -128,13 +181,13 @@ export const HistoryScreen = () => {
                 type="date"
                 value={startDate}
                 onChange={(e) => setStartDate(e.target.value)}
-                className="border-green-200 focus:border-green-500"
+                className="border-indigo-200 focus:border-indigo-500"
               />
             </div>
             
-            <div className="bg-white p-4 rounded-lg shadow-sm border border-green-100">
+            <div className="bg-white p-4 rounded-lg shadow-sm border border-indigo-100">
               <Label htmlFor="endDate" className="text-sm font-medium text-gray-700 flex items-center gap-2 mb-2">
-                <Calendar className="w-4 h-4 text-green-500" />
+                <Calendar className="w-4 h-4 text-indigo-500" />
                 終了日
               </Label>
               <Input
@@ -142,14 +195,14 @@ export const HistoryScreen = () => {
                 type="date"
                 value={endDate}
                 onChange={(e) => setEndDate(e.target.value)}
-                className="border-green-200 focus:border-green-500"
+                className="border-indigo-200 focus:border-indigo-500"
               />
             </div>
           </div>
           
           <Button 
             onClick={handleSearch}
-            className="w-full md:w-auto bg-gradient-to-r from-green-500 to-emerald-600 hover:from-green-600 hover:to-emerald-700 shadow-lg hover:shadow-xl transition-all duration-200"
+            className="w-full md:w-auto bg-gradient-to-r from-indigo-500 to-purple-600 hover:from-indigo-600 hover:to-purple-700 shadow-lg hover:shadow-xl transition-all duration-200"
           >
             <Search className="w-4 h-4 mr-2" />
             検索して表示
@@ -212,8 +265,8 @@ export const HistoryScreen = () => {
                             <Button
                               variant="outline"
                               size="sm"
-                              onClick={() => handleEdit(record.id)}
-                              className="hover:bg-blue-50 hover:border-blue-300 transition-colors"
+                              onClick={() => handleEdit(record)}
+                              className="hover:bg-indigo-50 hover:border-indigo-300 transition-colors"
                             >
                               <Edit className="w-4 h-4 mr-1" />
                               編集
@@ -221,7 +274,7 @@ export const HistoryScreen = () => {
                             <Button
                               variant="destructive"
                               size="sm"
-                              onClick={() => handleDelete(record.id)}
+                              onClick={() => setDeleteRecord(record)}
                               className="hover:bg-red-600 transition-colors"
                             >
                               <Trash2 className="w-4 h-4 mr-1" />
@@ -238,6 +291,134 @@ export const HistoryScreen = () => {
           </CardContent>
         </Card>
       )}
+
+      {/* 編集ダイアログ */}
+      <Dialog open={!!editingRecord} onOpenChange={() => setEditingRecord(null)}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle className="text-lg font-semibold text-gray-800 flex items-center gap-2">
+              <Edit className="w-5 h-5 text-indigo-500" />
+              服薬記録の編集
+            </DialogTitle>
+          </DialogHeader>
+          
+          {editingRecord && (
+            <div className="space-y-4">
+              <div className="bg-indigo-50 p-3 rounded-lg">
+                <Label className="text-sm font-medium text-gray-700">薬剤名</Label>
+                <p className="font-medium text-gray-800 mt-1">{editingRecord.medication}</p>
+              </div>
+              
+              <div>
+                <Label htmlFor="editDate" className="text-sm font-medium text-gray-700">
+                  服用日 *
+                </Label>
+                <Input
+                  id="editDate"
+                  type="date"
+                  value={editFormData.date}
+                  onChange={(e) => setEditFormData(prev => ({ ...prev, date: e.target.value }))}
+                  className="mt-1 border-indigo-200 focus:border-indigo-500"
+                />
+              </div>
+              
+              <div>
+                <Label htmlFor="editTime" className="text-sm font-medium text-gray-700">
+                  服用時刻 *
+                </Label>
+                <Input
+                  id="editTime"
+                  type="time"
+                  value={editFormData.time}
+                  onChange={(e) => setEditFormData(prev => ({ ...prev, time: e.target.value }))}
+                  className="mt-1 border-indigo-200 focus:border-indigo-500"
+                />
+              </div>
+              
+              <div>
+                <Label htmlFor="editDosage" className="text-sm font-medium text-gray-700">
+                  服用量 *
+                </Label>
+                <Input
+                  id="editDosage"
+                  value={editFormData.dosage}
+                  onChange={(e) => setEditFormData(prev => ({ ...prev, dosage: e.target.value }))}
+                  placeholder="例：1錠"
+                  className="mt-1 border-indigo-200 focus:border-indigo-500"
+                />
+              </div>
+              
+              <div>
+                <Label htmlFor="editMemo" className="text-sm font-medium text-gray-700">
+                  メモ（任意）
+                </Label>
+                <Textarea
+                  id="editMemo"
+                  value={editFormData.memo}
+                  onChange={(e) => setEditFormData(prev => ({ ...prev, memo: e.target.value }))}
+                  placeholder="服用に関するメモがあれば記入してください"
+                  className="mt-1 resize-none border-indigo-200 focus:border-indigo-500"
+                  rows={3}
+                />
+              </div>
+              
+              <div className="flex space-x-3 pt-4">
+                <Button 
+                  onClick={handleSaveEdit} 
+                  className="flex-1 bg-gradient-to-r from-indigo-500 to-purple-600 hover:from-indigo-600 hover:to-purple-700"
+                >
+                  <Save className="w-4 h-4 mr-2" />
+                  保存
+                </Button>
+                <Button 
+                  variant="outline" 
+                  onClick={handleCancelEdit} 
+                  className="flex-1 hover:bg-gray-50"
+                >
+                  <X className="w-4 h-4 mr-2" />
+                  キャンセル
+                </Button>
+              </div>
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
+
+      {/* 削除確認ダイアログ */}
+      <AlertDialog open={!!deleteRecord} onOpenChange={() => setDeleteRecord(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle className="text-lg font-semibold text-gray-800 flex items-center gap-2">
+              <Trash2 className="w-5 h-5 text-red-500" />
+              服薬記録の削除
+            </AlertDialogTitle>
+            <AlertDialogDescription className="text-gray-600">
+              {deleteRecord && (
+                <>
+                  以下の服薬記録を削除しますか？この操作は取り消せません。
+                  <div className="mt-3 p-3 bg-gray-50 rounded-lg">
+                    <p className="font-medium">{deleteRecord.medication}</p>
+                    <p className="text-sm text-gray-600">
+                      {new Date(deleteRecord.date).toLocaleDateString('ja-JP')} {deleteRecord.time} - {deleteRecord.dosage}
+                    </p>
+                  </div>
+                </>
+              )}
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel className="hover:bg-gray-50">
+              キャンセル
+            </AlertDialogCancel>
+            <AlertDialogAction 
+              onClick={handleDeleteConfirm}
+              className="bg-red-500 hover:bg-red-600"
+            >
+              削除する
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 };
