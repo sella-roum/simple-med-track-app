@@ -26,7 +26,7 @@ const Index = () => {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-50 via-indigo-50 to-purple-50">
+    <div className="min-h-screen bg-gradient-to-br from-blue-50 via-emerald-50 to-teal-50">
       <Header />
       
       <div className="flex h-[calc(100vh-4rem)]">
@@ -35,7 +35,7 @@ const Index = () => {
         )}
         
         <main className={`flex-1 overflow-auto ${isMobile ? 'pb-20' : 'pl-0'}`}>
-          <div className="container mx-auto px-4 py-8 max-w-4xl">
+          <div className="container mx-auto px-2 sm:px-4 py-4 sm:py-8 max-w-4xl">
             <div className="animate-fade-in">
               {renderScreen()}
             </div>

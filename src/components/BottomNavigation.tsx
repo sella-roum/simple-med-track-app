@@ -13,13 +13,13 @@ export const BottomNavigation: React.FC<BottomNavigationProps> = ({
   onTabChange,
 }) => {
   const tabs = [
-    { id: 'record', label: '記録', icon: Plus, color: 'indigo' },
-    { id: 'history', label: '履歴', icon: Clock, color: 'indigo' },
-    { id: 'medication', label: '薬剤管理', icon: Pill, color: 'indigo' },
+    { id: 'record', label: '記録', icon: Plus },
+    { id: 'history', label: '履歴', icon: Clock },
+    { id: 'medication', label: '薬剤管理', icon: Pill },
   ];
 
   return (
-    <nav className="fixed bottom-0 left-0 right-0 bg-white border-t border-indigo-200 z-50 shadow-2xl">
+    <nav className="fixed bottom-0 left-0 right-0 bg-white border-t border-emerald-200 z-50 shadow-lg">
       <div className="flex">
         {tabs.map((tab) => {
           const Icon = tab.icon;
@@ -30,20 +30,19 @@ export const BottomNavigation: React.FC<BottomNavigationProps> = ({
               key={tab.id}
               onClick={() => onTabChange(tab.id)}
               className={cn(
-                "flex-1 flex flex-col items-center justify-center py-3 px-2 transition-all duration-300",
-                "text-xs font-medium border-t-2 border-transparent relative",
+                "flex-1 flex flex-col items-center justify-center py-3 px-2 transition-all duration-200",
+                "text-xs font-medium relative",
                 isActive 
-                  ? "text-indigo-600 border-indigo-600 bg-indigo-50" 
-                  : "text-gray-500 hover:text-indigo-500 hover:bg-indigo-50"
+                  ? "text-emerald-600 bg-emerald-50" 
+                  : "text-gray-500 hover:text-emerald-500 hover:bg-emerald-50"
               )}
             >
               <Icon className={cn(
-                "w-5 h-5 mb-1 transition-all duration-200", 
-                isActive && "scale-110 animate-pulse"
+                "w-5 h-5 mb-1 transition-colors duration-200"
               )} />
-              <span className={cn("font-semibold", isActive && "font-bold")}>{tab.label}</span>
+              <span className={cn("font-medium", isActive && "font-semibold")}>{tab.label}</span>
               {isActive && (
-                <div className="absolute -top-0.5 left-1/2 transform -translate-x-1/2 w-8 h-1 rounded-full bg-indigo-600" />
+                <div className="absolute top-0 left-1/2 transform -translate-x-1/2 w-8 h-1 rounded-b-full bg-emerald-600" />
               )}
             </button>
           );
