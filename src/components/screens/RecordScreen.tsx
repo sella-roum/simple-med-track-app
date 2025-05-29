@@ -1,5 +1,5 @@
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -7,6 +7,7 @@ import { Label } from '@/components/ui/label';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Textarea } from '@/components/ui/textarea';
 import { useToast } from '@/hooks/use-toast';
+import { Clock, CheckCircle } from 'lucide-react';
 
 export const RecordScreen = () => {
   const [selectedTime, setSelectedTime] = useState('');
@@ -14,6 +15,17 @@ export const RecordScreen = () => {
   const [dosages, setDosages] = useState<{ [key: string]: string }>({});
   const [memos, setMemos] = useState<{ [key: string]: string }>({});
   const { toast } = useToast();
+
+  // 現在時刻を初期値としてセット
+  useEffect(() => {
+    const now = new Date();
+    const currentTime = now.toLocaleTimeString('ja-JP', { 
+      hour: '2-digit', 
+      minute: '2-digit',
+      hour12: false 
+    });
+    setSelectedTime(currentTime);
+  }, []);
 
   // サンプル薬剤データ
   const medications = [
@@ -72,7 +84,13 @@ export const RecordScreen = () => {
     });
 
     // フォームリセット
-    setSelectedTime('');
+    const now = new Date();
+    const currentTime = now.toLocaleTimeString('ja-JP', { 
+      hour: '2-digit', 
+      minute: '2-digit',
+      hour12: false 
+    });
+    setSelectedTime(currentTime);
     setSelectedMedications([]);
     setDosages({});
     setMemos({});
@@ -84,15 +102,25 @@ export const RecordScreen = () => {
 
   return (
     <div className="space-y-6 animate-fade-in">
-      <Card>
-        <CardHeader>
-          <CardTitle className="text-lg font-semibold text-gray-800">
-            服薬記録 - {formattedDate}
+      <div className="text-center">
+        <h2 className="text-2xl font-bold text-gray-800 mb-2">服薬記録</h2>
+        <p className="text-lg text-blue-600 font-medium flex items-center justify-center gap-2">
+          <Clock className="w-5 h-5" />
+          {formattedDate}
+        </p>
+      </div>
+
+      <Card className="shadow-lg border-0 bg-gradient-to-br from-white to-blue-50">
+        <CardHeader className="bg-gradient-to-r from-blue-500 to-indigo-600 text-white rounded-t-lg">
+          <CardTitle className="text-lg font-semibold flex items-center gap-2">
+            <CheckCircle className="w-5 h-5" />
+            服薬情報の入力
           </CardTitle>
         </CardHeader>
-        <CardContent className="space-y-6">
-          <div>
-            <Label htmlFor="time" className="text-sm font-medium text-gray-700">
+        <CardContent className="space-y-6 p-6">
+          <div className="bg-white p-4 rounded-lg shadow-sm border border-blue-100">
+            <Label htmlFor="time" className="text-sm font-medium text-gray-700 flex items-center gap-2 mb-2">
+              <Clock className="w-4 h-4 text-blue-500" />
               服用時刻 *
             </Label>
             <Input
@@ -100,17 +128,17 @@ export const RecordScreen = () => {
               type="time"
               value={selectedTime}
               onChange={(e) => setSelectedTime(e.target.value)}
-              className="mt-1"
+              className="border-blue-200 focus:border-blue-500"
             />
           </div>
 
-          <div>
-            <Label className="text-sm font-medium text-gray-700 mb-3 block">
+          <div className="bg-white p-4 rounded-lg shadow-sm border border-blue-100">
+            <Label className="text-sm font-medium text-gray-700 mb-4 block">
               服用薬選択 *
             </Label>
             <div className="space-y-4">
               {medications.map((medication) => (
-                <Card key={medication.id} className="p-4 hover:bg-gray-50 transition-colors">
+                <Card key={medication.id} className="p-4 hover:shadow-md transition-all duration-200 border-l-4 border-l-transparent hover:border-l-blue-500">
                   <div className="flex items-start space-x-3">
                     <Checkbox
                       id={medication.id}
@@ -118,25 +146,25 @@ export const RecordScreen = () => {
                       onCheckedChange={(checked) => 
                         handleMedicationToggle(medication.id, checked as boolean)
                       }
-                      className="mt-1"
+                      className="mt-1 data-[state=checked]:bg-blue-500 data-[state=checked]:border-blue-500"
                     />
                     <div className="flex-1 space-y-3">
                       <div>
-                        <Label htmlFor={medication.id} className="font-medium cursor-pointer">
+                        <Label htmlFor={medication.id} className="font-medium cursor-pointer text-gray-800">
                           {medication.name}
                         </Label>
-                        <p className="text-sm text-gray-500">
+                        <p className="text-sm text-gray-500 mt-1">
                           標準服用量: {medication.standardDose} {medication.unit}
                         </p>
                       </div>
                       
                       {selectedMedications.includes(medication.id) && (
-                        <div className="space-y-3 pl-4 border-l-2 border-blue-200">
+                        <div className="space-y-4 pl-4 border-l-2 border-blue-200 bg-blue-50 p-4 rounded-lg animate-fade-in">
                           <div>
-                            <Label className="text-sm font-medium text-gray-700">
+                            <Label className="text-sm font-medium text-gray-700 mb-2 block">
                               服用量
                             </Label>
-                            <div className="flex items-center space-x-2 mt-1">
+                            <div className="flex items-center space-x-2">
                               <Input
                                 type="number"
                                 step="0.5"
@@ -146,16 +174,16 @@ export const RecordScreen = () => {
                                   ...prev,
                                   [medication.id]: e.target.value
                                 }))}
-                                className="w-20"
+                                className="w-24 border-blue-200 focus:border-blue-500"
                               />
-                              <span className="text-sm text-gray-600">
+                              <span className="text-sm text-gray-600 font-medium">
                                 {medication.unit}
                               </span>
                             </div>
                           </div>
                           
                           <div>
-                            <Label className="text-sm font-medium text-gray-700">
+                            <Label className="text-sm font-medium text-gray-700 mb-2 block">
                               メモ（任意）
                             </Label>
                             <Textarea
@@ -165,7 +193,7 @@ export const RecordScreen = () => {
                                 [medication.id]: e.target.value
                               }))}
                               placeholder="服用に関するメモがあれば記入してください"
-                              className="mt-1 resize-none"
+                              className="resize-none border-blue-200 focus:border-blue-500"
                               rows={2}
                             />
                           </div>
@@ -180,9 +208,10 @@ export const RecordScreen = () => {
 
           <Button 
             onClick={handleRecord}
-            className="w-full bg-gradient-to-r from-blue-500 to-indigo-600 hover:from-blue-600 hover:to-indigo-700 text-white font-medium py-3"
+            className="w-full bg-gradient-to-r from-blue-500 to-indigo-600 hover:from-blue-600 hover:to-indigo-700 text-white font-medium py-4 text-lg shadow-lg hover:shadow-xl transition-all duration-200"
             size="lg"
           >
+            <CheckCircle className="w-5 h-5 mr-2" />
             記録する
           </Button>
         </CardContent>

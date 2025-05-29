@@ -1,10 +1,12 @@
-import React, { useState } from 'react';
+
+import React, { useState, useEffect } from 'react';
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Badge } from '@/components/ui/badge';
 import { useToast } from '@/hooks/use-toast';
+import { Search, Calendar, Edit, Trash2, Clock } from 'lucide-react';
 
 interface HistoryRecord {
   id: string;
@@ -20,6 +22,14 @@ export const HistoryScreen = () => {
   const [endDate, setEndDate] = useState('');
   const [historyData, setHistoryData] = useState<HistoryRecord[]>([]);
   const { toast } = useToast();
+
+  // 本日の日付をデフォルト値として設定
+  useEffect(() => {
+    const today = new Date();
+    const todayString = today.toISOString().split('T')[0];
+    setStartDate(todayString);
+    setEndDate(todayString);
+  }, []);
 
   // サンプル履歴データ
   const sampleHistory: HistoryRecord[] = [
@@ -94,16 +104,23 @@ export const HistoryScreen = () => {
 
   return (
     <div className="space-y-6 animate-fade-in">
-      <Card>
-        <CardHeader>
-          <CardTitle className="text-lg font-semibold text-gray-800">
-            服薬履歴検索
+      <div className="text-center">
+        <h2 className="text-2xl font-bold text-gray-800 mb-2">服薬履歴</h2>
+        <p className="text-gray-600">過去の服薬記録を確認できます</p>
+      </div>
+
+      <Card className="shadow-lg border-0 bg-gradient-to-br from-white to-green-50">
+        <CardHeader className="bg-gradient-to-r from-green-500 to-emerald-600 text-white rounded-t-lg">
+          <CardTitle className="text-lg font-semibold flex items-center gap-2">
+            <Search className="w-5 h-5" />
+            検索条件
           </CardTitle>
         </CardHeader>
-        <CardContent className="space-y-4">
+        <CardContent className="space-y-4 p-6">
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div>
-              <Label htmlFor="startDate" className="text-sm font-medium text-gray-700">
+            <div className="bg-white p-4 rounded-lg shadow-sm border border-green-100">
+              <Label htmlFor="startDate" className="text-sm font-medium text-gray-700 flex items-center gap-2 mb-2">
+                <Calendar className="w-4 h-4 text-green-500" />
                 開始日
               </Label>
               <Input
@@ -111,12 +128,13 @@ export const HistoryScreen = () => {
                 type="date"
                 value={startDate}
                 onChange={(e) => setStartDate(e.target.value)}
-                className="mt-1"
+                className="border-green-200 focus:border-green-500"
               />
             </div>
             
-            <div>
-              <Label htmlFor="endDate" className="text-sm font-medium text-gray-700">
+            <div className="bg-white p-4 rounded-lg shadow-sm border border-green-100">
+              <Label htmlFor="endDate" className="text-sm font-medium text-gray-700 flex items-center gap-2 mb-2">
+                <Calendar className="w-4 h-4 text-green-500" />
                 終了日
               </Label>
               <Input
@@ -124,58 +142,68 @@ export const HistoryScreen = () => {
                 type="date"
                 value={endDate}
                 onChange={(e) => setEndDate(e.target.value)}
-                className="mt-1"
+                className="border-green-200 focus:border-green-500"
               />
             </div>
           </div>
           
           <Button 
             onClick={handleSearch}
-            className="w-full md:w-auto bg-gradient-to-r from-blue-500 to-indigo-600 hover:from-blue-600 hover:to-indigo-700"
+            className="w-full md:w-auto bg-gradient-to-r from-green-500 to-emerald-600 hover:from-green-600 hover:to-emerald-700 shadow-lg hover:shadow-xl transition-all duration-200"
           >
-            表示
+            <Search className="w-4 h-4 mr-2" />
+            検索して表示
           </Button>
         </CardContent>
       </Card>
 
       {Object.keys(groupedHistory).length > 0 && (
-        <Card>
-          <CardHeader>
-            <CardTitle className="text-lg font-semibold text-gray-800">
-              服薬履歴
+        <Card className="shadow-lg border-0">
+          <CardHeader className="bg-gradient-to-r from-indigo-500 to-purple-600 text-white rounded-t-lg">
+            <CardTitle className="text-lg font-semibold flex items-center gap-2">
+              <Clock className="w-5 h-5" />
+              服薬履歴一覧
             </CardTitle>
           </CardHeader>
-          <CardContent>
+          <CardContent className="p-6">
             <div className="space-y-6">
               {Object.entries(groupedHistory).map(([date, records]) => (
                 <div key={date} className="space-y-3">
-                  <h3 className="font-semibold text-gray-800 border-b border-gray-200 pb-2">
-                    {new Date(date).toLocaleDateString('ja-JP', { 
-                      year: 'numeric', 
-                      month: 'long', 
-                      day: 'numeric',
-                      weekday: 'short'
-                    })}
-                  </h3>
+                  <div className="flex items-center gap-3 border-b border-gray-200 pb-3">
+                    <Calendar className="w-5 h-5 text-indigo-500" />
+                    <h3 className="font-semibold text-gray-800 text-lg">
+                      {new Date(date).toLocaleDateString('ja-JP', { 
+                        year: 'numeric', 
+                        month: 'long', 
+                        day: 'numeric',
+                        weekday: 'short'
+                      })}
+                    </h3>
+                  </div>
                   
                   <div className="space-y-3">
                     {records.map((record) => (
-                      <Card key={record.id} className="p-4 hover:bg-gray-50 transition-colors">
+                      <Card key={record.id} className="p-5 hover:shadow-md transition-all duration-200 border-l-4 border-l-indigo-400 bg-gradient-to-r from-white to-indigo-50">
                         <div className="flex justify-between items-start">
-                          <div className="flex-1 space-y-2">
-                            <div className="flex items-center space-x-2">
-                              <Badge variant="outline" className="text-xs">
+                          <div className="flex-1 space-y-3">
+                            <div className="flex items-center space-x-3">
+                              <Badge variant="outline" className="text-xs bg-indigo-100 text-indigo-700 border-indigo-200">
+                                <Clock className="w-3 h-3 mr-1" />
                                 {record.time}
                               </Badge>
-                              <span className="font-medium text-gray-800">
+                              <span className="font-medium text-gray-800 text-lg">
                                 {record.medication}
                               </span>
                             </div>
                             
-                            <div className="text-sm text-gray-600">
-                              <span>服用量: {record.dosage}</span>
+                            <div className="text-sm text-gray-600 flex flex-wrap gap-4">
+                              <span className="flex items-center gap-1">
+                                <strong>服用量:</strong> {record.dosage}
+                              </span>
                               {record.memo && (
-                                <span className="ml-4">メモ: {record.memo}</span>
+                                <span className="flex items-center gap-1">
+                                  <strong>メモ:</strong> {record.memo}
+                                </span>
                               )}
                             </div>
                           </div>
@@ -185,14 +213,18 @@ export const HistoryScreen = () => {
                               variant="outline"
                               size="sm"
                               onClick={() => handleEdit(record.id)}
+                              className="hover:bg-blue-50 hover:border-blue-300 transition-colors"
                             >
+                              <Edit className="w-4 h-4 mr-1" />
                               編集
                             </Button>
                             <Button
                               variant="destructive"
                               size="sm"
                               onClick={() => handleDelete(record.id)}
+                              className="hover:bg-red-600 transition-colors"
                             >
+                              <Trash2 className="w-4 h-4 mr-1" />
                               削除
                             </Button>
                           </div>
