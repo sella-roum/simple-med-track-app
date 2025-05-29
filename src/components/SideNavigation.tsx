@@ -1,6 +1,6 @@
 
 import React from 'react';
-import { Plus, Clock, Capsule } from 'lucide-react';
+import { Plus, Clock, Pill } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
 interface SideNavigationProps {
@@ -15,7 +15,7 @@ export const SideNavigation: React.FC<SideNavigationProps> = ({
   const tabs = [
     { id: 'record', label: '記録', icon: Plus },
     { id: 'history', label: '履歴', icon: Clock },
-    { id: 'medication', label: '薬剤管理', icon: Capsule },
+    { id: 'medication', label: '薬剤管理', icon: Pill },
   ];
 
   return (

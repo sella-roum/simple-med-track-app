@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -7,14 +6,23 @@ import { Label } from '@/components/ui/label';
 import { Badge } from '@/components/ui/badge';
 import { useToast } from '@/hooks/use-toast';
 
+interface HistoryRecord {
+  id: string;
+  date: string;
+  time: string;
+  medication: string;
+  dosage: string;
+  memo: string;
+}
+
 export const HistoryScreen = () => {
   const [startDate, setStartDate] = useState('');
   const [endDate, setEndDate] = useState('');
-  const [historyData, setHistoryData] = useState<any[]>([]);
+  const [historyData, setHistoryData] = useState<HistoryRecord[]>([]);
   const { toast } = useToast();
 
   // サンプル履歴データ
-  const sampleHistory = [
+  const sampleHistory: HistoryRecord[] = [
     {
       id: '1',
       date: '2024-05-29',
@@ -82,7 +90,7 @@ export const HistoryScreen = () => {
     }
     groups[date].push(record);
     return groups;
-  }, {} as { [key: string]: any[] });
+  }, {} as { [key: string]: HistoryRecord[] });
 
   return (
     <div className="space-y-6 animate-fade-in">
