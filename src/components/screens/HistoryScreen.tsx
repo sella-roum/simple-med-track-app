@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -29,6 +28,7 @@ export const HistoryScreen = () => {
   const [editFormData, setEditFormData] = useState<any>({});
   const [historyData, setHistoryData] = useState<MedicationRecord[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+  const [isEditDialogOpen, setIsEditDialogOpen] = useState(false); // 編集ダイアログの表示状態
 
   useEffect(() => {
     loadHistoryData();
@@ -61,6 +61,7 @@ export const HistoryScreen = () => {
       })),
       recordMemo: record.recordMemo || ''
     });
+    setIsEditDialogOpen(true); // ダイアログを開く
   };
 
   const handleSaveEdit = async () => {
@@ -86,8 +87,9 @@ export const HistoryScreen = () => {
         title: "更新完了",
         description: "記録を更新しました。",
       });
-      setEditingRecord(null);
-      setEditFormData({});
+      setEditingRecord(null); // 編集対象をクリア
+      setEditFormData({});   // フォームデータをクリア
+      setIsEditDialogOpen(false); // ダイアログを閉じる
     } catch (error) {
       console.error('記録の更新に失敗しました:', error);
       toast({
@@ -253,7 +255,13 @@ export const HistoryScreen = () => {
                           <span className="text-sm sm:text-base">{record.time}</span>
                         </div>
                         <div className="flex gap-2">
-                          <Dialog>
+                          <Dialog open={isEditDialogOpen && editingRecord?.id === record.id} onOpenChange={(open) => {
+                            setIsEditDialogOpen(open);
+                            if (!open) { 
+                              setEditingRecord(null);
+                              setEditFormData({});
+                            }
+                          }}>
                             <DialogTrigger asChild>
                               <Button 
                                 variant="outline" 
@@ -265,77 +273,79 @@ export const HistoryScreen = () => {
                                 編集
                               </Button>
                             </DialogTrigger>
-                            <DialogContent className="w-[95vw] max-w-md max-h-[80vh] overflow-y-auto">
-                              <DialogHeader>
-                                <DialogTitle className="text-base sm:text-lg">記録編集</DialogTitle>
-                              </DialogHeader>
-                              <div className="space-y-4">
-                                <div>
-                                  <Label className="text-sm font-medium text-gray-700 mb-2 block">服用時刻</Label>
-                                  <Input 
-                                    type="time" 
-                                    value={editFormData.time || record.time}
-                                    onChange={(e) => setEditFormData(prev => ({ ...prev, time: e.target.value }))}
-                                    className="text-sm" 
-                                  />
-                                </div>
+                            {editingRecord && editingRecord.id === record.id && (
+                              <DialogContent className="w-[95vw] max-w-md max-h-[80vh] overflow-y-auto">
+                                <DialogHeader>
+                                  <DialogTitle className="text-base sm:text-lg">記録編集</DialogTitle>
+                                </DialogHeader>
+                                <div className="space-y-4">
+                                  <div>
+                                    <Label className="text-sm font-medium text-gray-700 mb-2 block">服用時刻</Label>
+                                    <Input 
+                                      type="time" 
+                                      value={editFormData.time || ''}
+                                      onChange={(e) => setEditFormData(prev => ({ ...prev, time: e.target.value }))}
+                                      className="text-sm" 
+                                    />
+                                  </div>
 
-                                {/* 薬剤リスト */}
-                                <div className="space-y-3">
-                                  <Label className="text-sm font-medium text-gray-700">服用薬剤</Label>
-                                  {editFormData.medications?.map((med, index) => (
-                                    <div key={index} className="p-3 bg-blue-50 rounded-lg border border-blue-200">
-                                      <div className="space-y-2">
-                                        <div className="flex items-center gap-2 text-blue-700 font-medium">
-                                          <Pill className="w-4 h-4" />
-                                          <span className="text-sm">{med.name}</span>
-                                        </div>
-                                        
-                                        <div>
-                                          <Label className="text-xs text-gray-600 block mb-1">
-                                            処方量: {med.dosage}
-                                          </Label>
-                                          <Label className="text-xs font-medium text-gray-700 block mb-1">
-                                            実際の服用量
-                                          </Label>
-                                          <Input
-                                            value={med.actualDosage}
-                                            onChange={(e) => updateMedicationDosage(index, e.target.value)}
-                                            placeholder="例: 1錠"
-                                            className="text-sm h-8"
-                                          />
-                                        </div>
-
-                                        {med.memo && (
-                                          <div className="text-xs text-blue-600 bg-white p-2 rounded border">
-                                            <span className="font-medium">メモ: </span>
-                                            {med.memo}
+                                  {/* 薬剤リスト */}
+                                  <div className="space-y-3">
+                                    <Label className="text-sm font-medium text-gray-700">服用薬剤</Label>
+                                    {editFormData.medications?.map((med, index) => (
+                                      <div key={index} className="p-3 bg-blue-50 rounded-lg border border-blue-200">
+                                        <div className="space-y-2">
+                                          <div className="flex items-center gap-2 text-blue-700 font-medium">
+                                            <Pill className="w-4 h-4" />
+                                            <span className="text-sm">{med.name}</span>
                                           </div>
-                                        )}
+                                          
+                                          <div>
+                                            <Label className="text-xs text-gray-600 block mb-1">
+                                              処方量: {med.dosage}
+                                            </Label>
+                                            <Label className="text-xs font-medium text-gray-700 block mb-1">
+                                              実際の服用量
+                                            </Label>
+                                            <Input
+                                              value={med.actualDosage}
+                                              onChange={(e) => updateMedicationDosage(index, e.target.value)}
+                                              placeholder="例: 1錠"
+                                              className="text-sm h-8"
+                                            />
+                                          </div>
+
+                                          {med.memo && (
+                                            <div className="text-xs text-blue-600 bg-white p-2 rounded border">
+                                              <span className="font-medium">メモ: </span>
+                                              {med.memo}
+                                            </div>
+                                          )}
+                                        </div>
                                       </div>
-                                    </div>
-                                  ))}
-                                </div>
+                                    ))}
+                                  </div>
 
-                                <div>
-                                  <Label className="text-sm font-medium text-gray-700 mb-2 block">記録メモ</Label>
-                                  <Textarea
-                                    value={editFormData.recordMemo || ''}
-                                    onChange={(e) => setEditFormData(prev => ({ ...prev, recordMemo: e.target.value }))}
-                                    placeholder="体調や服用時の状況など..."
-                                    className="text-sm"
-                                    rows={3}
-                                  />
-                                </div>
+                                  <div>
+                                    <Label className="text-sm font-medium text-gray-700 mb-2 block">記録メモ</Label>
+                                    <Textarea
+                                      value={editFormData.recordMemo || ''}
+                                      onChange={(e) => setEditFormData(prev => ({ ...prev, recordMemo: e.target.value }))}
+                                      placeholder="体調や服用時の状況など..."
+                                      className="text-sm"
+                                      rows={3}
+                                    />
+                                  </div>
 
-                                <Button 
-                                  onClick={handleSaveEdit}
-                                  className="w-full bg-gradient-to-r from-blue-500 to-blue-600 hover:from-blue-600 hover:to-blue-700 text-white text-sm"
-                                >
-                                  保存
-                                </Button>
-                              </div>
-                            </DialogContent>
+                                  <Button 
+                                    onClick={handleSaveEdit}
+                                    className="w-full bg-gradient-to-r from-blue-500 to-blue-600 hover:from-blue-600 hover:to-blue-700 text-white text-sm"
+                                  >
+                                    保存
+                                  </Button>
+                                </div>
+                              </DialogContent>
+                            )}
                           </Dialog>
 
                           <AlertDialog>
