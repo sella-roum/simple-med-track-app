@@ -1,5 +1,5 @@
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -8,16 +8,20 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from 
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '@/components/ui/alert-dialog';
 import { Textarea } from '@/components/ui/textarea';
 import { useToast } from '@/hooks/use-toast';
-import { Plus, Pill, Edit, Trash2 } from 'lucide-react';
+import { Plus, Pill, Edit, Trash2, Loader2 } from 'lucide-react';
+import { Medication } from '@/types/db';
+import { 
+  getAllMedications, 
+  addMedication, 
+  updateMedication, 
+  deleteMedication 
+} from '@/lib/db';
 
 export const MedicationManagementScreen = () => {
   const { toast } = useToast();
   
-  const [medications, setMedications] = useState([
-    { id: 1, name: 'ロキソニン錠60mg', dosage: '1錠', memo: '朝食後に服用。胃の負担を軽減するため' },
-    { id: 2, name: 'ガスター錠20mg', dosage: '1錠', memo: '胃の保護のため。空腹時でも可' },
-    { id: 3, name: 'ムコダイン錠250mg', dosage: '2錠', memo: '水分多めに摂取。のどの痰を出しやすくする' }
-  ]);
+  const [medications, setMedications] = useState<Medication[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
 
   const [newMedication, setNewMedication] = useState({
     name: '',
@@ -25,11 +29,33 @@ export const MedicationManagementScreen = () => {
     memo: ''
   });
   
-  const [editingMedication, setEditingMedication] = useState<any>(null);
+  const [editingMedication, setEditingMedication] = useState<Medication | null>(null);
   const [isAddDialogOpen, setIsAddDialogOpen] = useState(false);
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
 
-  const handleAddMedication = () => {
+  // データの読み込み
+  useEffect(() => {
+    loadMedications();
+  }, []);
+
+  const loadMedications = async () => {
+    try {
+      setIsLoading(true);
+      const medicationsData = await getAllMedications();
+      setMedications(medicationsData);
+    } catch (error) {
+      console.error('薬剤データの読み込みに失敗しました:', error);
+      toast({
+        title: "エラー",
+        description: "薬剤データの読み込みに失敗しました。",
+        variant: "destructive",
+      });
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const handleAddMedication = async () => {
     if (!newMedication.name || !newMedication.dosage) {
       toast({
         title: "エラー",
@@ -39,23 +65,28 @@ export const MedicationManagementScreen = () => {
       return;
     }
 
-    const medication = {
-      id: Date.now(),
-      ...newMedication
-    };
+    try {
+      const addedMedication = await addMedication(newMedication);
+      setMedications(prev => [...prev, addedMedication]);
+      setNewMedication({ name: '', dosage: '', memo: '' });
+      setIsAddDialogOpen(false);
 
-    setMedications(prev => [...prev, medication]);
-    setNewMedication({ name: '', dosage: '', memo: '' });
-    setIsAddDialogOpen(false);
-
-    toast({
-      title: "追加完了",
-      description: `${medication.name} を追加しました。`,
-    });
+      toast({
+        title: "追加完了",
+        description: `${addedMedication.name} を追加しました。`,
+      });
+    } catch (error) {
+      console.error('薬剤の追加に失敗しました:', error);
+      toast({
+        title: "エラー",
+        description: "薬剤の追加に失敗しました。",
+        variant: "destructive",
+      });
+    }
   };
 
-  const handleEditMedication = () => {
-    if (!editingMedication.name || !editingMedication.dosage) {
+  const handleEditMedication = async () => {
+    if (!editingMedication || !editingMedication.name || !editingMedication.dosage) {
       toast({
         title: "エラー",
         description: "薬剤名と用法・用量は必須項目です。",
@@ -64,34 +95,69 @@ export const MedicationManagementScreen = () => {
       return;
     }
 
-    setMedications(prev => 
-      prev.map(med => 
-        med.id === editingMedication.id ? editingMedication : med
-      )
-    );
-    
-    setEditingMedication(null);
-    setIsEditDialogOpen(false);
+    try {
+      await updateMedication(editingMedication);
+      setMedications(prev => 
+        prev.map(med => 
+          med.id === editingMedication.id ? editingMedication : med
+        )
+      );
+      
+      setEditingMedication(null);
+      setIsEditDialogOpen(false);
 
-    toast({
-      title: "更新完了",
-      description: "薬剤情報を更新しました。",
-    });
+      toast({
+        title: "更新完了",
+        description: "薬剤情報を更新しました。",
+      });
+    } catch (error) {
+      console.error('薬剤の更新に失敗しました:', error);
+      toast({
+        title: "エラー",
+        description: "薬剤の更新に失敗しました。",
+        variant: "destructive",
+      });
+    }
   };
 
-  const handleDeleteMedication = (id: number) => {
-    setMedications(prev => prev.filter(med => med.id !== id));
-    
-    toast({
-      title: "削除完了",
-      description: "薬剤を削除しました。",
-    });
+  const handleDeleteMedication = async (id: string) => {
+    try {
+      await deleteMedication(id);
+      setMedications(prev => prev.filter(med => med.id !== id));
+      
+      toast({
+        title: "削除完了",
+        description: "薬剤を削除しました。",
+      });
+    } catch (error) {
+      console.error('薬剤の削除に失敗しました:', error);
+      toast({
+        title: "エラー",
+        description: "薬剤の削除に失敗しました。",
+        variant: "destructive",
+      });
+    }
   };
 
-  const openEditDialog = (medication: any) => {
+  const openEditDialog = (medication: Medication) => {
     setEditingMedication({ ...medication });
     setIsEditDialogOpen(true);
   };
+
+  if (isLoading) {
+    return (
+      <div className="space-y-4 sm:space-y-6 animate-fade-in px-2 sm:px-0">
+        <div className="text-center">
+          <h2 className="text-xl sm:text-2xl font-bold text-gray-800 mb-2">薬剤管理</h2>
+          <p className="text-sm sm:text-base text-gray-600">服用中の薬剤を管理できます</p>
+        </div>
+        <div className="flex justify-center items-center py-8">
+          <Loader2 className="w-8 h-8 animate-spin text-blue-500" />
+          <span className="ml-2 text-gray-600">読み込み中...</span>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-4 sm:space-y-6 animate-fade-in px-2 sm:px-0">
@@ -103,7 +169,7 @@ export const MedicationManagementScreen = () => {
       {/* 薬剤追加ボタン */}
       <Dialog open={isAddDialogOpen} onOpenChange={setIsAddDialogOpen}>
         <DialogTrigger asChild>
-          <Button className="w-full bg-gradient-to-r from-blue-500 to-indigo-600 hover:from-blue-600 hover:to-indigo-700 text-white py-3 sm:py-4 text-base sm:text-lg font-semibold shadow-lg">
+          <Button className="w-full bg-gradient-to-r from-blue-500 to-blue-600 hover:from-blue-600 hover:to-blue-700 text-white py-3 sm:py-4 text-base sm:text-lg font-semibold shadow-lg">
             <Plus className="w-5 h-5 mr-2" />
             新しい薬剤を追加
           </Button>
@@ -143,7 +209,7 @@ export const MedicationManagementScreen = () => {
             </div>
             <Button 
               onClick={handleAddMedication}
-              className="w-full bg-gradient-to-r from-blue-500 to-indigo-600 hover:from-blue-600 hover:to-indigo-700 text-white"
+              className="w-full bg-gradient-to-r from-blue-500 to-blue-600 hover:from-blue-600 hover:to-blue-700 text-white"
             >
               追加
             </Button>
@@ -192,7 +258,7 @@ export const MedicationManagementScreen = () => {
                             <Label className="text-sm font-medium text-gray-700 mb-2 block">薬剤名 *</Label>
                             <Input
                               value={editingMedication.name}
-                              onChange={(e) => setEditingMedication(prev => ({ ...prev, name: e.target.value }))}
+                              onChange={(e) => setEditingMedication(prev => prev ? { ...prev, name: e.target.value } : null)}
                               className="border-blue-200 focus:border-blue-500"
                             />
                           </div>
@@ -200,7 +266,7 @@ export const MedicationManagementScreen = () => {
                             <Label className="text-sm font-medium text-gray-700 mb-2 block">用法・用量 *</Label>
                             <Input
                               value={editingMedication.dosage}
-                              onChange={(e) => setEditingMedication(prev => ({ ...prev, dosage: e.target.value }))}
+                              onChange={(e) => setEditingMedication(prev => prev ? { ...prev, dosage: e.target.value } : null)}
                               className="border-blue-200 focus:border-blue-500"
                             />
                           </div>
@@ -208,14 +274,14 @@ export const MedicationManagementScreen = () => {
                             <Label className="text-sm font-medium text-gray-700 mb-2 block">メモ</Label>
                             <Textarea
                               value={editingMedication.memo}
-                              onChange={(e) => setEditingMedication(prev => ({ ...prev, memo: e.target.value }))}
+                              onChange={(e) => setEditingMedication(prev => prev ? { ...prev, memo: e.target.value } : null)}
                               className="resize-none border-blue-200 focus:border-blue-500"
                               rows={3}
                             />
                           </div>
                           <Button 
                             onClick={handleEditMedication}
-                            className="w-full bg-gradient-to-r from-blue-500 to-indigo-600 hover:from-blue-600 hover:to-indigo-700 text-white"
+                            className="w-full bg-gradient-to-r from-blue-500 to-blue-600 hover:from-blue-600 hover:to-blue-700 text-white"
                           >
                             保存
                           </Button>
