@@ -2,7 +2,7 @@
 import { Medication, MedicationRecord } from '@/types/db';
 
 const DB_NAME = 'MedTrackDB';
-const DB_VERSION = 1;
+const DB_VERSION = 2; // バージョンアップ
 
 export const openDB = (): Promise<IDBDatabase> => {
   return new Promise((resolve, reject) => {
@@ -13,6 +13,7 @@ export const openDB = (): Promise<IDBDatabase> => {
 
     request.onupgradeneeded = (event) => {
       const db = (event.target as IDBOpenDBRequest).result;
+      const oldVersion = event.oldVersion;
 
       // 薬剤情報ストア
       if (!db.objectStoreNames.contains('medications')) {
@@ -24,6 +25,25 @@ export const openDB = (): Promise<IDBDatabase> => {
       if (!db.objectStoreNames.contains('medicationRecords')) {
         const recordStore = db.createObjectStore('medicationRecords', { keyPath: 'id' });
         recordStore.createIndex('date', 'date', { unique: false });
+      }
+
+      // バージョン2：既存の薬剤データにtimingsフィールドを追加
+      if (oldVersion < 2) {
+        const transaction = (event.target as IDBOpenDBRequest).transaction;
+        const medicationStore = transaction?.objectStore('medications');
+        
+        if (medicationStore) {
+          const getAllRequest = medicationStore.getAll();
+          getAllRequest.onsuccess = () => {
+            const medications = getAllRequest.result;
+            medications.forEach((medication) => {
+              if (!medication.timings) {
+                medication.timings = ['朝']; // デフォルト値
+                medicationStore.put(medication);
+              }
+            });
+          };
+        }
       }
     };
   });

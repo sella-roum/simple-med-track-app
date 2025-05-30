@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -7,6 +8,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { useToast } from '@/hooks/use-toast';
 import { Plus, Clock, Pill, Check, Loader2 } from 'lucide-react';
 import { Medication } from '@/types/db';
+import { TimingSelector } from '@/components/TimingSelector';
 import { getAllMedications, addMedicationRecord } from '@/lib/db';
 
 export const RecordScreen = () => {
@@ -18,16 +20,34 @@ export const RecordScreen = () => {
   };
 
   const [medicationTime, setMedicationTime] = useState(getCurrentTime());
+  const [selectedTiming, setSelectedTiming] = useState<string[]>([]);
   const [selectedMedications, setSelectedMedications] = useState<string[]>([]);
-  const [actualDosages, setActualDosages] = useState<Record<string, string>>({}); // ★ 追加: 実際の服用量を管理
+  const [actualDosages, setActualDosages] = useState<Record<string, string>>({});
   const [memo, setMemo] = useState('');
   const [availableMedications, setAvailableMedications] = useState<Medication[]>([]);
+  const [filteredMedications, setFilteredMedications] = useState<Medication[]>([]);
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
     setMedicationTime(getCurrentTime());
     loadMedications();
   }, []);
+
+  useEffect(() => {
+    if (selectedTiming.length > 0) {
+      const filtered = availableMedications.filter(med => 
+        med.timings?.some(timing => selectedTiming.includes(timing))
+      );
+      setFilteredMedications(filtered);
+      // 選択されている薬剤をクリア
+      setSelectedMedications([]);
+      setActualDosages({});
+    } else {
+      setFilteredMedications([]);
+      setSelectedMedications([]);
+      setActualDosages({});
+    }
+  }, [selectedTiming, availableMedications]);
 
   const loadMedications = async () => {
     try {
@@ -47,7 +67,7 @@ export const RecordScreen = () => {
   };
 
   const handleMedicationToggle = (medicationId: string) => {
-    const medication = availableMedications.find(med => med.id === medicationId);
+    const medication = filteredMedications.find(med => med.id === medicationId);
     if (!medication) return;
 
     setSelectedMedications(prevSelected => {
@@ -71,7 +91,6 @@ export const RecordScreen = () => {
     });
   };
 
-  // ★ 追加: 実際の服用量変更ハンドラ
   const handleActualDosageChange = (medicationId: string, value: string) => {
     setActualDosages(prevDosages => ({
       ...prevDosages,
@@ -80,6 +99,15 @@ export const RecordScreen = () => {
   };
 
   const handleSubmit = async () => {
+    if (selectedTiming.length === 0) {
+      toast({
+        title: "エラー",
+        description: "服用タイミングを選択してください。",
+        variant: "destructive",
+      });
+      return;
+    }
+
     if (selectedMedications.length === 0) {
       toast({
         title: "エラー",
@@ -90,21 +118,21 @@ export const RecordScreen = () => {
     }
 
     try {
-      // ★ 修正: actualDosages を使用して記録データを作成
-      const medsForRecord = availableMedications
+      const medsForRecord = filteredMedications
         .filter(med => selectedMedications.includes(med.id))
         .map(med => ({
           name: med.name,
-          dosage: med.dosage, // 元の処方量も記録
-          actualDosage: actualDosages[med.id] || med.dosage, // ユーザー入力値、なければ元の処方量
+          dosage: med.dosage,
+          actualDosage: actualDosages[med.id] || med.dosage,
           memo: med.memo,
         }));
 
-      const today = new Date().toISOString().split('T')[0]; // YYYY-MM-DD形式
+      const today = new Date().toISOString().split('T')[0];
 
       const recordData = {
         date: today,
         time: medicationTime,
+        timing: selectedTiming[0], // 単一選択
         medications: medsForRecord,
         recordMemo: memo,
       };
@@ -113,12 +141,13 @@ export const RecordScreen = () => {
 
       toast({
         title: "記録完了",
-        description: `${medicationTime} に ${medsForRecord.map(med => med.name).join(', ')} を記録しました。`,
+        description: `${selectedTiming[0]} ${medicationTime} に ${medsForRecord.map(med => med.name).join(', ')} を記録しました。`,
       });
 
       // フォームリセット
+      setSelectedTiming([]);
       setSelectedMedications([]);
-      setActualDosages({}); // ★ 追加: actualDosages もリセット
+      setActualDosages({});
       setMemo('');
       setMedicationTime(getCurrentTime());
     } catch (error) {
@@ -153,6 +182,26 @@ export const RecordScreen = () => {
         <p className="text-sm sm:text-base text-gray-600">今日の服薬状況を記録しましょう</p>
       </div>
 
+      {/* 服用タイミング選択 */}
+      <Card className="shadow-lg border-0 bg-gradient-to-br from-white to-blue-50">
+        <CardHeader className="bg-gradient-to-r from-blue-500 to-blue-600 text-white rounded-t-lg">
+          <CardTitle className="text-base sm:text-lg font-semibold flex items-center gap-2">
+            <Clock className="w-4 h-4 sm:w-5 sm:h-5" />
+            服用タイミング
+          </CardTitle>
+        </CardHeader>
+        <CardContent className="p-4 sm:p-6">
+          <Label className="text-sm font-medium text-gray-700 mb-2 block">
+            服用タイミングを選択
+          </Label>
+          <TimingSelector
+            selectedTimings={selectedTiming}
+            onTimingsChange={setSelectedTiming}
+            multiple={false}
+          />
+        </CardContent>
+      </Card>
+
       {/* 服用時刻設定 */}
       <Card className="shadow-lg border-0 bg-gradient-to-br from-white to-blue-50">
         <CardHeader className="bg-gradient-to-r from-blue-500 to-blue-600 text-white rounded-t-lg">
@@ -184,9 +233,14 @@ export const RecordScreen = () => {
           </CardTitle>
         </CardHeader>
         <CardContent className="p-4 sm:p-6">
-          {availableMedications.length > 0 ? (
+          {selectedTiming.length === 0 ? (
+            <div className="text-center py-8">
+              <Clock className="w-12 h-12 text-gray-400 mx-auto mb-4" />
+              <p className="text-gray-500 text-sm sm:text-base">まず服用タイミングを選択してください</p>
+            </div>
+          ) : filteredMedications.length > 0 ? (
             <div className="grid gap-3 sm:gap-4">
-              {availableMedications.map((medication) => {
+              {filteredMedications.map((medication) => {
                 const isSelected = selectedMedications.includes(medication.id);
                 return (
                   <div
@@ -218,7 +272,6 @@ export const RecordScreen = () => {
                             💡 {medication.memo}
                           </p>
                         )}
-                        {/* ★ ここから追加: 実際の服用量入力フィールド */}
                         {isSelected && (
                           <div className="mt-2">
                             <Label htmlFor={`actualDosage-${medication.id}`} className="text-xs font-medium text-gray-700 mb-1 block">
@@ -229,13 +282,12 @@ export const RecordScreen = () => {
                               type="text"
                               value={actualDosages[medication.id] || ''}
                               onChange={(e) => handleActualDosageChange(medication.id, e.target.value)}
-                              onClick={(e) => e.stopPropagation()} // 親要素のクリックイベント伝播を停止
+                              onClick={(e) => e.stopPropagation()}
                               placeholder="例: 1錠"
                               className="text-sm h-8 border-blue-300 focus:border-blue-500"
                             />
                           </div>
                         )}
-                        {/* ★ ここまで追加 */}
                       </div>
                     </div>
                   </div>
@@ -245,7 +297,9 @@ export const RecordScreen = () => {
           ) : (
             <div className="text-center py-8">
               <Pill className="w-12 h-12 text-gray-400 mx-auto mb-4" />
-              <p className="text-gray-500 text-sm sm:text-base">登録された薬剤がありません</p>
+              <p className="text-gray-500 text-sm sm:text-base">
+                {selectedTiming[0]} の薬剤が登録されていません
+              </p>
               <p className="text-gray-400 text-xs sm:text-sm mt-1">薬剤管理画面で薬剤を追加してください</p>
             </div>
           )}
@@ -272,7 +326,7 @@ export const RecordScreen = () => {
       <Button 
         onClick={handleSubmit}
         className="w-full bg-gradient-to-r from-blue-500 to-blue-600 hover:from-blue-600 hover:to-blue-700 text-white py-3 sm:py-4 text-base sm:text-lg font-semibold shadow-lg"
-        disabled={selectedMedications.length === 0}
+        disabled={selectedTiming.length === 0 || selectedMedications.length === 0}
       >
         <Plus className="w-5 h-5 mr-2" />
         服薬記録を保存

@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -8,8 +7,9 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from 
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '@/components/ui/alert-dialog';
 import { Textarea } from '@/components/ui/textarea';
 import { useToast } from '@/hooks/use-toast';
-import { Plus, Pill, Edit, Trash2, Loader2 } from 'lucide-react';
+import { Plus, Pill, Edit, Trash2, Loader2, Clock } from 'lucide-react';
 import { Medication } from '@/types/db';
+import { TimingSelector } from '@/components/TimingSelector';
 import { 
   getAllMedications, 
   addMedication, 
@@ -26,7 +26,8 @@ export const MedicationManagementScreen = () => {
   const [newMedication, setNewMedication] = useState({
     name: '',
     dosage: '',
-    memo: ''
+    memo: '',
+    timings: [] as string[]
   });
   
   const [editingMedication, setEditingMedication] = useState<Medication | null>(null);
@@ -65,10 +66,19 @@ export const MedicationManagementScreen = () => {
       return;
     }
 
+    if (newMedication.timings.length === 0) {
+      toast({
+        title: "エラー",
+        description: "服用タイミングを選択してください。",
+        variant: "destructive",
+      });
+      return;
+    }
+
     try {
       const addedMedication = await addMedication(newMedication);
       setMedications(prev => [...prev, addedMedication]);
-      setNewMedication({ name: '', dosage: '', memo: '' });
+      setNewMedication({ name: '', dosage: '', memo: '', timings: [] });
       setIsAddDialogOpen(false);
 
       toast({
@@ -90,6 +100,15 @@ export const MedicationManagementScreen = () => {
       toast({
         title: "エラー",
         description: "薬剤名と用法・用量は必須項目です。",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    if (editingMedication.timings.length === 0) {
+      toast({
+        title: "エラー",
+        description: "服用タイミングを選択してください。",
         variant: "destructive",
       });
       return;
@@ -198,6 +217,13 @@ export const MedicationManagementScreen = () => {
               />
             </div>
             <div>
+              <Label className="text-sm font-medium text-gray-700 mb-2 block">服用タイミング *</Label>
+              <TimingSelector
+                selectedTimings={newMedication.timings}
+                onTimingsChange={(timings) => setNewMedication(prev => ({ ...prev, timings }))}
+              />
+            </div>
+            <div>
               <Label className="text-sm font-medium text-gray-700 mb-2 block">メモ</Label>
               <Textarea
                 placeholder="服用時の注意点など..."
@@ -229,6 +255,16 @@ export const MedicationManagementScreen = () => {
                     <h3 className="font-semibold text-gray-800 text-sm sm:text-base">{medication.name}</h3>
                   </div>
                   <p className="text-blue-600 font-medium text-xs sm:text-sm mb-2">用法・用量: {medication.dosage}</p>
+                  <div className="flex items-center gap-2 mb-2">
+                    <Clock className="w-3 h-3 sm:w-4 sm:h-4 text-green-600" />
+                    <div className="flex flex-wrap gap-1">
+                      {medication.timings?.map((timing) => (
+                        <span key={timing} className="px-2 py-1 bg-green-100 text-green-700 text-xs rounded-full">
+                          {timing}
+                        </span>
+                      ))}
+                    </div>
+                  </div>
                   {medication.memo && (
                     <p className="text-gray-600 text-xs sm:text-sm leading-relaxed">
                       💡 {medication.memo}
@@ -268,6 +304,13 @@ export const MedicationManagementScreen = () => {
                               value={editingMedication.dosage}
                               onChange={(e) => setEditingMedication(prev => prev ? { ...prev, dosage: e.target.value } : null)}
                               className="border-blue-200 focus:border-blue-500"
+                            />
+                          </div>
+                          <div>
+                            <Label className="text-sm font-medium text-gray-700 mb-2 block">服用タイミング *</Label>
+                            <TimingSelector
+                              selectedTimings={editingMedication.timings || []}
+                              onTimingsChange={(timings) => setEditingMedication(prev => prev ? { ...prev, timings } : null)}
                             />
                           </div>
                           <div>
