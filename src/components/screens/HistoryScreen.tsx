@@ -19,6 +19,7 @@ export const HistoryScreen = () => {
   const [startDate, setStartDate] = useState(today);
   const [endDate, setEndDate] = useState(today);
   const [editingRecord, setEditingRecord] = useState<any>(null);
+  const [editFormData, setEditFormData] = useState<any>({});
 
   // サンプルデータ
   const historyData = [
@@ -27,7 +28,7 @@ export const HistoryScreen = () => {
       date: '2024-01-15',
       time: '08:00',
       medications: [
-        { name: 'ロキソニン錠60mg', dosage: '1錠', memo: '朝食後に服用' }
+        { name: 'ロキソニン錠60mg', dosage: '1錠', actualDosage: '1錠', memo: '朝食後に服用' }
       ]
     },
     {
@@ -35,14 +36,21 @@ export const HistoryScreen = () => {
       date: '2024-01-15',
       time: '12:30',
       medications: [
-        { name: 'ガスター錠20mg', dosage: '1錠', memo: '' },
-        { name: 'ムコダイン錠250mg', dosage: '2錠', memo: '水分多めに摂取' }
+        { name: 'ガスター錠20mg', dosage: '1錠', actualDosage: '1錠', memo: '胃の保護のため' },
+        { name: 'ムコダイン錠250mg', dosage: '2錠', actualDosage: '2錠', memo: '水分多めに摂取' }
       ]
     }
   ];
 
   const handleEdit = (record: any) => {
     setEditingRecord(record);
+    setEditFormData({
+      time: record.time,
+      medications: record.medications.map(med => ({
+        ...med,
+        actualDosage: med.actualDosage || med.dosage
+      }))
+    });
   };
 
   const handleSaveEdit = () => {
@@ -51,6 +59,7 @@ export const HistoryScreen = () => {
       description: "記録を更新しました。",
     });
     setEditingRecord(null);
+    setEditFormData({});
   };
 
   const handleDelete = (recordId: number) => {
@@ -65,6 +74,15 @@ export const HistoryScreen = () => {
       title: "検索実行",
       description: `${startDate} から ${endDate} の記録を検索しました。`,
     });
+  };
+
+  const updateMedicationDosage = (medIndex: number, newDosage: string) => {
+    setEditFormData(prev => ({
+      ...prev,
+      medications: prev.medications.map((med, index) => 
+        index === medIndex ? { ...med, actualDosage: newDosage } : med
+      )
+    }));
   };
 
   const groupedData = historyData.reduce((acc: { [key: string]: any[] }, record) => {
@@ -83,8 +101,8 @@ export const HistoryScreen = () => {
       </div>
 
       {/* 検索フィルター */}
-      <Card className="shadow-lg border-0 bg-gradient-to-br from-white to-emerald-50">
-        <CardHeader className="bg-gradient-to-r from-emerald-500 to-teal-600 text-white rounded-t-lg">
+      <Card className="shadow-lg border-0 bg-gradient-to-br from-white to-blue-50">
+        <CardHeader className="bg-gradient-to-r from-blue-500 to-indigo-600 text-white rounded-t-lg">
           <CardTitle className="text-base sm:text-lg font-semibold flex items-center gap-2">
             <Search className="w-4 h-4 sm:w-5 sm:h-5" />
             期間検索
@@ -101,7 +119,7 @@ export const HistoryScreen = () => {
                 type="date"
                 value={startDate}
                 onChange={(e) => setStartDate(e.target.value)}
-                className="border-emerald-200 focus:border-emerald-500"
+                className="border-blue-200 focus:border-blue-500"
               />
             </div>
             <div>
@@ -113,13 +131,13 @@ export const HistoryScreen = () => {
                 type="date"
                 value={endDate}
                 onChange={(e) => setEndDate(e.target.value)}
-                className="border-emerald-200 focus:border-emerald-500"
+                className="border-blue-200 focus:border-blue-500"
               />
             </div>
           </div>
           <Button 
             onClick={handleSearch}
-            className="w-full bg-gradient-to-r from-emerald-500 to-teal-600 hover:from-emerald-600 hover:to-teal-700 text-white"
+            className="w-full bg-gradient-to-r from-blue-500 to-indigo-600 hover:from-blue-600 hover:to-indigo-700 text-white"
           >
             <Search className="w-4 h-4 mr-2" />
             検索
@@ -130,8 +148,8 @@ export const HistoryScreen = () => {
       {/* 履歴一覧 */}
       <div className="space-y-4">
         {Object.entries(groupedData).map(([date, records]) => (
-          <Card key={date} className="shadow-lg border-0 bg-gradient-to-br from-white to-emerald-50">
-            <CardHeader className="bg-gradient-to-r from-emerald-500 to-teal-600 text-white rounded-t-lg">
+          <Card key={date} className="shadow-lg border-0 bg-gradient-to-br from-white to-blue-50">
+            <CardHeader className="bg-gradient-to-r from-blue-500 to-indigo-600 text-white rounded-t-lg">
               <CardTitle className="text-base sm:text-lg font-semibold flex items-center gap-2">
                 <Calendar className="w-4 h-4 sm:w-5 sm:h-5" />
                 {new Date(date).toLocaleDateString('ja-JP', { 
@@ -145,9 +163,9 @@ export const HistoryScreen = () => {
             <CardContent className="p-4 sm:p-6">
               <div className="space-y-3 sm:space-y-4">
                 {records.map((record) => (
-                  <div key={record.id} className="bg-white p-3 sm:p-4 rounded-lg shadow-sm border border-emerald-100">
+                  <div key={record.id} className="bg-white p-3 sm:p-4 rounded-lg shadow-sm border border-blue-100">
                     <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-3">
-                      <div className="flex items-center gap-2 text-emerald-600 font-medium">
+                      <div className="flex items-center gap-2 text-blue-600 font-medium">
                         <Clock className="w-4 h-4" />
                         <span className="text-sm sm:text-base">{record.time}</span>
                       </div>
@@ -158,32 +176,67 @@ export const HistoryScreen = () => {
                               variant="outline" 
                               size="sm"
                               onClick={() => handleEdit(record)}
-                              className="border-emerald-200 text-emerald-600 hover:bg-emerald-50 text-xs sm:text-sm px-2 sm:px-3"
+                              className="border-blue-200 text-blue-600 hover:bg-blue-50 text-xs sm:text-sm px-2 sm:px-3"
                             >
                               <Edit className="w-3 h-3 sm:w-4 sm:h-4 mr-1" />
                               編集
                             </Button>
                           </DialogTrigger>
-                          <DialogContent className="w-[95vw] max-w-md">
+                          <DialogContent className="w-[95vw] max-w-md max-h-[80vh] overflow-y-auto">
                             <DialogHeader>
                               <DialogTitle className="text-base sm:text-lg">記録編集</DialogTitle>
                             </DialogHeader>
                             <div className="space-y-4">
                               <div>
                                 <Label className="text-sm font-medium text-gray-700 mb-2 block">服用時刻</Label>
-                                <Input type="time" defaultValue={record.time} className="text-sm" />
-                              </div>
-                              <div>
-                                <Label className="text-sm font-medium text-gray-700 mb-2 block">メモ</Label>
-                                <Textarea 
-                                  defaultValue={record.medications[0]?.memo || ''} 
-                                  className="resize-none text-sm" 
-                                  rows={3}
+                                <Input 
+                                  type="time" 
+                                  value={editFormData.time || record.time}
+                                  onChange={(e) => setEditFormData(prev => ({ ...prev, time: e.target.value }))}
+                                  className="text-sm" 
                                 />
                               </div>
+
+                              {/* 薬剤リスト */}
+                              <div className="space-y-3">
+                                <Label className="text-sm font-medium text-gray-700">服用薬剤</Label>
+                                {editFormData.medications?.map((med, index) => (
+                                  <div key={index} className="p-3 bg-blue-50 rounded-lg border border-blue-200">
+                                    <div className="space-y-2">
+                                      <div className="flex items-center gap-2 text-blue-700 font-medium">
+                                        <Pill className="w-4 h-4" />
+                                        <span className="text-sm">{med.name}</span>
+                                      </div>
+                                      
+                                      <div>
+                                        <Label className="text-xs text-gray-600 block mb-1">
+                                          処方量: {med.dosage}
+                                        </Label>
+                                        <Label className="text-xs font-medium text-gray-700 block mb-1">
+                                          実際の服用量
+                                        </Label>
+                                        <Input
+                                          value={med.actualDosage}
+                                          onChange={(e) => updateMedicationDosage(index, e.target.value)}
+                                          placeholder="例: 1錠"
+                                          className="text-sm h-8"
+                                        />
+                                      </div>
+
+                                      {med.memo && (
+                                        <div className="text-xs text-blue-600 bg-white p-2 rounded border">
+                                          <span className="font-medium">メモ: </span>
+                                          {med.memo}
+                                        </div>
+                                      )}
+                                    </div>
+                                  </div>
+                                ))}
+                              </div>
+
                               <Button 
                                 onClick={handleSaveEdit}
-                                className="w-full bg-gradient-to-r from-emerald-500 to-teal-600 hover:from-emerald-600 hover:to-teal-700 text-white text-sm"
+                                className="w-full bg-gradient-to-r from-blue-500 to-indigo-600 hover:from-blue-600 hover:to-indigo-700 text-white text-sm"
                               >
                                 保存
                               </Button>
@@ -225,11 +278,11 @@ export const HistoryScreen = () => {
                     <div className="space-y-2">
                       {record.medications.map((med, index) => (
                         <div key={index} className="flex items-center gap-2 text-sm sm:text-base">
-                          <Pill className="w-4 h-4 text-emerald-500 flex-shrink-0" />
+                          <Pill className="w-4 h-4 text-blue-500 flex-shrink-0" />
                           <span className="font-medium">{med.name}</span>
-                          <span className="text-gray-600">({med.dosage})</span>
+                          <span className="text-gray-600">({med.actualDosage || med.dosage})</span>
                           {med.memo && (
-                            <span className="text-emerald-600 text-xs sm:text-sm">- {med.memo}</span>
+                            <span className="text-blue-600 text-xs sm:text-sm">- {med.memo}</span>
                           )}
                         </div>
                       ))}
