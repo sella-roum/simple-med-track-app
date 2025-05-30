@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -12,8 +11,7 @@ import { getAllMedications, addMedicationRecord } from '@/lib/db';
 
 export const RecordScreen = () => {
   const { toast } = useToast();
-  
-  // 現在時刻を取得してフォーマット
+
   const getCurrentTime = () => {
     const now = new Date();
     return now.toTimeString().slice(0, 5); // HH:MM形式
@@ -21,11 +19,11 @@ export const RecordScreen = () => {
 
   const [medicationTime, setMedicationTime] = useState(getCurrentTime());
   const [selectedMedications, setSelectedMedications] = useState<string[]>([]);
+  const [actualDosages, setActualDosages] = useState<Record<string, string>>({}); // ★ 追加: 実際の服用量を管理
   const [memo, setMemo] = useState('');
   const [availableMedications, setAvailableMedications] = useState<Medication[]>([]);
   const [isLoading, setIsLoading] = useState(true);
 
-  // コンポーネントマウント時に現在時刻をセット
   useEffect(() => {
     setMedicationTime(getCurrentTime());
     loadMedications();
@@ -49,11 +47,36 @@ export const RecordScreen = () => {
   };
 
   const handleMedicationToggle = (medicationId: string) => {
-    setSelectedMedications(prev => 
-      prev.includes(medicationId) 
-        ? prev.filter(id => id !== medicationId)
-        : [...prev, medicationId]
-    );
+    const medication = availableMedications.find(med => med.id === medicationId);
+    if (!medication) return;
+
+    setSelectedMedications(prevSelected => {
+      const isCurrentlySelected = prevSelected.includes(medicationId);
+      if (isCurrentlySelected) {
+        // 選択解除
+        setActualDosages(prevDosages => {
+          const newDosages = { ...prevDosages };
+          delete newDosages[medicationId];
+          return newDosages;
+        });
+        return prevSelected.filter(id => id !== medicationId);
+      } else {
+        // 選択
+        setActualDosages(prevDosages => ({
+          ...prevDosages,
+          [medicationId]: medication.dosage, // デフォルトの用法・用量をセット
+        }));
+        return [...prevSelected, medicationId];
+      }
+    });
+  };
+
+  // ★ 追加: 実際の服用量変更ハンドラ
+  const handleActualDosageChange = (medicationId: string, value: string) => {
+    setActualDosages(prevDosages => ({
+      ...prevDosages,
+      [medicationId]: value,
+    }));
   };
 
   const handleSubmit = async () => {
@@ -67,33 +90,35 @@ export const RecordScreen = () => {
     }
 
     try {
-      const selectedMeds = availableMedications.filter(med => 
-        selectedMedications.includes(med.id)
-      );
+      // ★ 修正: actualDosages を使用して記録データを作成
+      const medsForRecord = availableMedications
+        .filter(med => selectedMedications.includes(med.id))
+        .map(med => ({
+          name: med.name,
+          dosage: med.dosage, // 元の処方量も記録
+          actualDosage: actualDosages[med.id] || med.dosage, // ユーザー入力値、なければ元の処方量
+          memo: med.memo,
+        }));
 
       const today = new Date().toISOString().split('T')[0]; // YYYY-MM-DD形式
 
       const recordData = {
         date: today,
         time: medicationTime,
-        medications: selectedMeds.map(med => ({
-          name: med.name,
-          dosage: med.dosage,
-          actualDosage: med.dosage,
-          memo: med.memo
-        })),
-        recordMemo: memo
+        medications: medsForRecord,
+        recordMemo: memo,
       };
 
       await addMedicationRecord(recordData);
 
       toast({
         title: "記録完了",
-        description: `${medicationTime} に ${selectedMeds.map(med => med.name).join(', ')} を記録しました。`,
+        description: `${medicationTime} に ${medsForRecord.map(med => med.name).join(', ')} を記録しました。`,
       });
 
       // フォームリセット
       setSelectedMedications([]);
+      setActualDosages({}); // ★ 追加: actualDosages もリセット
       setMemo('');
       setMedicationTime(getCurrentTime());
     } catch (error) {
@@ -161,40 +186,61 @@ export const RecordScreen = () => {
         <CardContent className="p-4 sm:p-6">
           {availableMedications.length > 0 ? (
             <div className="grid gap-3 sm:gap-4">
-              {availableMedications.map((medication) => (
-                <div
-                  key={medication.id}
-                  className={`p-3 sm:p-4 rounded-lg border-2 cursor-pointer transition-all duration-200 ${
-                    selectedMedications.includes(medication.id)
-                      ? 'border-blue-500 bg-blue-50 shadow-md'
-                      : 'border-gray-200 bg-white hover:border-blue-300 hover:bg-blue-50'
-                  }`}
-                  onClick={() => handleMedicationToggle(medication.id)}
-                >
-                  <div className="flex items-start gap-3">
-                    <div className={`flex-shrink-0 w-5 h-5 rounded-full border-2 flex items-center justify-center mt-0.5 ${
-                      selectedMedications.includes(medication.id)
-                        ? 'border-blue-500 bg-blue-500'
-                        : 'border-gray-300'
-                    }`}>
-                      {selectedMedications.includes(medication.id) && (
-                        <Check className="w-3 h-3 text-white" />
-                      )}
-                    </div>
-                    <div className="flex-1 min-w-0">
-                      <div className="flex flex-col sm:flex-row sm:items-center gap-1 sm:gap-2 mb-1">
-                        <h3 className="font-medium text-gray-800 text-sm sm:text-base">{medication.name}</h3>
-                        <span className="text-blue-600 text-xs sm:text-sm font-medium">({medication.dosage})</span>
+              {availableMedications.map((medication) => {
+                const isSelected = selectedMedications.includes(medication.id);
+                return (
+                  <div
+                    key={medication.id}
+                    className={`p-3 sm:p-4 rounded-lg border-2 cursor-pointer transition-all duration-200 ${
+                      isSelected
+                        ? 'border-blue-500 bg-blue-50 shadow-md'
+                        : 'border-gray-200 bg-white hover:border-blue-300 hover:bg-blue-50'
+                    }`}
+                    onClick={() => handleMedicationToggle(medication.id)}
+                  >
+                    <div className="flex items-start gap-3">
+                      <div className={`flex-shrink-0 w-5 h-5 rounded-full border-2 flex items-center justify-center mt-0.5 ${
+                        isSelected
+                          ? 'border-blue-500 bg-blue-500'
+                          : 'border-gray-300'
+                      }`}>
+                        {isSelected && (
+                          <Check className="w-3 h-3 text-white" />
+                        )}
                       </div>
-                      {medication.memo && (
-                        <p className="text-xs sm:text-sm text-gray-600 mt-1 leading-relaxed">
-                          💡 {medication.memo}
-                        </p>
-                      )}
+                      <div className="flex-1 min-w-0">
+                        <div className="flex flex-col sm:flex-row sm:items-center gap-1 sm:gap-2 mb-1">
+                          <h3 className="font-medium text-gray-800 text-sm sm:text-base">{medication.name}</h3>
+                          <span className="text-blue-600 text-xs sm:text-sm font-medium">({medication.dosage})</span>
+                        </div>
+                        {medication.memo && (
+                          <p className="text-xs sm:text-sm text-gray-600 mt-1 leading-relaxed">
+                            💡 {medication.memo}
+                          </p>
+                        )}
+                        {/* ★ ここから追加: 実際の服用量入力フィールド */}
+                        {isSelected && (
+                          <div className="mt-2">
+                            <Label htmlFor={`actualDosage-${medication.id}`} className="text-xs font-medium text-gray-700 mb-1 block">
+                              実際の服用量
+                            </Label>
+                            <Input
+                              id={`actualDosage-${medication.id}`}
+                              type="text"
+                              value={actualDosages[medication.id] || ''}
+                              onChange={(e) => handleActualDosageChange(medication.id, e.target.value)}
+                              onClick={(e) => e.stopPropagation()} // 親要素のクリックイベント伝播を停止
+                              placeholder="例: 1錠"
+                              className="text-sm h-8 border-blue-300 focus:border-blue-500"
+                            />
+                          </div>
+                        )}
+                        {/* ★ ここまで追加 */}
+                      </div>
                     </div>
                   </div>
-                </div>
-              ))}
+                );
+              })}
             </div>
           ) : (
             <div className="text-center py-8">
